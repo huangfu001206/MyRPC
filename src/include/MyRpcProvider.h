@@ -10,10 +10,17 @@
 #include <muduo/net/Buffer.h>
 #include <unordered_map>
 
+struct ServiceAndMethodDesc
+{
+    const google::protobuf::MethodDescriptor* method_desc;
+    const google::protobuf::Service* service;
+};
+
+
 class RpcProvider {
 public:
     //注册rpc服务
-    void NotifyService(google::protobuf::Service* service);
+    void NotifyService(const google::protobuf::Service* service);
 
     //开始运行rpc监听服务
     void Start();
@@ -29,5 +36,5 @@ private:
     muduo::net::EventLoop eventLoop;
     //记录服务映射关系，便于查询某个服务的某个方法
     std::unordered_map<std::string,
-        std::unordered_map<std::string, const google::protobuf::MethodDescriptor*>> serviceMaps;
+        std::unordered_map<std::string, ServiceAndMethodDesc>> serviceMaps;
 };

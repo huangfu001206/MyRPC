@@ -4,11 +4,13 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <unistd.h>
+#include <errno.h>
 
 void MyRpcChan::CallMethod(const google::protobuf::MethodDescriptor* method,
                           google::protobuf::RpcController* controller, 
                           const google::protobuf::Message* request,
-                          const google::protobuf::Message* response, google::protobuf::Closure* done) 
+                          google::protobuf::Message* response, google::protobuf::Closure* done) 
 {
     //获取服务名称以及方法索引
     const google::protobuf::ServiceDescriptor* service = method->service();
@@ -67,6 +69,32 @@ void MyRpcChan::CallMethod(const google::protobuf::MethodDescriptor* method,
     server_addr.sin_port = htons(port);
     server_addr.sin_addr.s_addr = inet_addr(server_ip.c_str());
     
-    
-    
+    //向服务器发起连接请求
+    if(connect(client_fd, (const sockaddr*)&server_addr, sizeof(server_addr)) == -1) {
+        close(client_fd);
+        std::cout<<"无法与服务器建立连接"<<std::endl;
+        return;
+    }
+    //发送rpc请求信息
+    if(send(client_fd, rpc_request_str.c_str(), rpc_request_str.size(), 0) == -1) {
+        close(client_fd);
+        std::cout<<"rpc 请求发送失败"<<std::endl;
+        return;
+    }
+    //等待请求响应
+    char recv_buf[1024];
+    int recv_buf_size = 0;
+    if((recv_buf_size = recv(client_fd, recv_buf, 1024, 0)) == -1) {
+        close(client_fd);
+        std::cout<<"服务器未响应请求"<<std::endl;
+        return;
+    }
+
+    //响应结果进行反序列化
+    if(!response->ParseFromArray(recv_buf, recv_buf_size)) {
+        close(client_fd);
+        std::cout<<"响应结果反序列化失败"<<std::endl;
+        return;
+    }
+    close(client_fd);
 }
