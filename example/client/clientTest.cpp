@@ -1,29 +1,41 @@
-#pragma once
-#include <iostream>
-#include <string>
 #include "client.pb.h"
 #include "MyRpcApplication.h"
-#include "MyRpcProvider.h"
-#include "clientService.h"
+#include "MyRpcChan.h"
+#include "MyRpcController.h"
 
 int main(int argc, char** argv) {
-    int header_size = 100000;
-    std::string result = std::string((char*)&header_size, 4);
-    std::cout<<"result : "<<result<<std::endl;
 
-    auto fileInfo = MyRpcApplication::getInstance().init(argc, argv).getFileInfo();
-    for(auto p : fileInfo) {
-        std::cout<<p.first << " : " << p.second<<std::endl;
+    LOG_DEBUG("LOG_DEBUG Test");
+    LOG_DEBUG("LOG_DEBUG Test");
+    LOG_INFO("LOG_INFO Test");
+    LOG_INFO("LOG_INFO Test");
+    LOG_ERROR("LOG_ERROR Test");
+    LOG_ERROR("LOG_ERROR Test");
+
+
+    MyRpcApplication::getInstance().init(argc, argv);
+    ClientPro::ClientServiceRPC_Stub stub(new MyRpcChan());
+
+    //准备请求信息
+    ClientPro::LoginRequest request;
+    request.set_username("huangfu");
+    request.set_password("123456");
+
+    //接收请求结构体
+    ClientPro::LoginResponse response;
+
+    //调用远程Rpc方法
+    MyRpcController controller;
+    stub.Login(&controller, &request, &response, nullptr);
+
+    if(controller.Failed()) {
+        std::cout<<controller.ErrorText()<<std::endl;
+    } else {
+        std::cout<<"++++++++ response info ++++++++"<<std::endl;
+        std::cout<<"success : "<<response.status().success()<<std::endl;
+        std::cout<<"errormsg : "<<response.status().errormsg()<<std::endl;
+        std::cout<<"msg : "<<response.msg()<<std::endl;
+        std::cout<<"+++++++++++++++++++++++++++++++"<<std::endl;
     }
-    RpcProvider provider;
-    provider.NotifyService(new clientService());
-    provider.Start();
-
-    
-    // ClientPro::LoginRequest request;
-    // request.set_username("huangfu");
-    // request.set_password("xxxxxxxx");
-    // std::string serial_result = request.SerializeAsString();
-    // std::cout<<"序列化结果为： "<<serial_result<<std::endl; 
     return 0;
 }

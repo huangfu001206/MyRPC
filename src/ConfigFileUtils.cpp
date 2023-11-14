@@ -11,9 +11,11 @@ ConfigFileUtils& ConfigFileUtils::load(const std::string& filePath, std::unorder
         }
         file.close();
     } else {
-        std::cerr << "Failed to open file." << std::endl;
+        LOG_ERROR("Fail to open file");
+        exit(EXIT_FAILURE);
         return *this;
     }
+    return *this;
 }
 
 void ConfigFileUtils::deleteAllEmptyChar(std::string& line) {

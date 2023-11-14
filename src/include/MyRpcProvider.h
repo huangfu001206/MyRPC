@@ -13,14 +13,14 @@
 struct ServiceAndMethodDesc
 {
     const google::protobuf::MethodDescriptor* method_desc;
-    const google::protobuf::Service* service;
+    google::protobuf::Service* service;
 };
 
 
-class RpcProvider {
+class MyRpcProvider {
 public:
     //注册rpc服务
-    void NotifyService(const google::protobuf::Service* service);
+    void NotifyService(google::protobuf::Service* service);
 
     //开始运行rpc监听服务
     void Start();
@@ -32,6 +32,9 @@ public:
     void MessageHandler(const muduo::net::TcpConnectionPtr &conn,
                             muduo::net::Buffer*,
                             muduo::Timestamp);
+
+    void SendRpcResponse(std::shared_ptr<muduo::net::TcpConnection> const&,
+                            google::protobuf::Message *response);
 private:
     muduo::net::EventLoop eventLoop;
     //记录服务映射关系，便于查询某个服务的某个方法

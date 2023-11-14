@@ -10,6 +10,12 @@ public:
     static MyRpcApplication& getInstance();
     //获取文件配置信息
     std::unordered_map<std::string, std::string> getFileInfo();
+
+    MyRpcApplication() = default;
+
+    MyRpcApplication(const MyRpcApplication&) = delete;
+
+    MyRpcApplication& operator=(const MyRpcApplication&) = delete;
 private:
     ConfigFileUtils fileUtils;
     //存储文件配置信息

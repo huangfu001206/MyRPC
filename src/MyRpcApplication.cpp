@@ -5,6 +5,7 @@ namespace po = boost::program_options;
 MyRpcApplication& MyRpcApplication::init(int argc, char** argv) {
     if(argc < 2) {
         std::cout<<"params error, please input \'-i <filepath>\'"<<std::endl;
+        exit(EXIT_FAILURE);
     }
     po::options_description desc("Allowed options");
     desc.add_options()
