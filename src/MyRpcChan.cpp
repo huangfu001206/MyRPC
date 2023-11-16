@@ -1,11 +1,11 @@
 #include "MyRpcChan.h"
 #include "MyRpcHeader.pb.h"
 #include "MyRpcApplication.h"
+#include "ZookeeperUtils.h"
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
-#include <errno.h>
 
 void MyRpcChan::CallMethod(const google::protobuf::MethodDescriptor* method,
                           google::protobuf::RpcController* controller, 
@@ -68,10 +68,29 @@ void MyRpcChan::CallMethod(const google::protobuf::MethodDescriptor* method,
         LOG_ERROR("socket 创建失败");
         return;
     }
-    auto config_file_info = MyRpcApplication::getInstance().getFileInfo();
-    std::string server_ip = config_file_info["server_ip"];
-    int port = atoi(config_file_info["server_port"].c_str());
-    struct sockaddr_in server_addr;
+//    auto config_file_info = MyRpcApplication::getInstance().getFileInfo();
+//    std::string server_ip = config_file_info["server_ip"];
+//    int port = atoi(config_file_info["server_port"].c_str());
+
+    //连接zookeeper服务器，找到服务以及方法对应的服务ip和端口号
+    ZookeeperClient client;
+    client.Run();
+    std::string zNodePath = "/"+service_name+"/"+method_name;
+    std::string server_ip_port = std::string(client.GetZNodeData(zNodePath.c_str()));
+    size_t index = server_ip_port.find_first_of(':');
+    std::string server_ip;
+    int port;
+    try {
+        server_ip = server_ip_port.substr(0, index);
+        port = std::atoi(server_ip_port.substr(index + 1).c_str());
+        std::cout<<"服务： "<<service_name<<"."<<method_name<<" is at "<<server_ip<<":"<<port<<std::endl;
+    } catch (const std::exception& e) {
+        LOG_ERROR("%s", e.what());
+        controller->SetFailed(e.what());
+        return;
+    }
+
+    struct sockaddr_in server_addr{};
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(port);
     server_addr.sin_addr.s_addr = inet_addr(server_ip.c_str());

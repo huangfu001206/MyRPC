@@ -13,7 +13,6 @@ ConfigFileUtils& ConfigFileUtils::load(const std::string& filePath, std::unorder
     } else {
         LOG_ERROR("Fail to open file");
         exit(EXIT_FAILURE);
-        return *this;
     }
     return *this;
 }

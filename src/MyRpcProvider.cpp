@@ -1,25 +1,28 @@
 #include "MyRpcProvider.h"
 #include "MyRpcHeader.pb.h"
 #include <functional>
+
 void MyRpcProvider::NotifyService(google::protobuf::Service* service) {
     //获取服务指针 服务名称
     const google::protobuf::ServiceDescriptor *serviceDesp = service->GetDescriptor();
-    std::string service_name = serviceDesp->name();
+    std::string serviceName = serviceDesp->name();
 
     //获取方法数量，并记录方法描述符指针
     int methodCnt = serviceDesp->method_count();
-    ServiceAndMethodDesc desc;
+    ServiceAndMethodDesc desc{};
     desc.service = service;
     std::unordered_map<std::string, ServiceAndMethodDesc> methodMap;
+
     for(int i = 0; i < methodCnt; i++) {
         std::string method_name = serviceDesp->method(i)->name();
         desc.method_desc = serviceDesp->method(i);
         methodMap.insert({method_name, desc});
     }
+
     //记录 服务名称 和 方法 的映射关系
-    serviceMaps[service_name] = methodMap;
+    serviceMaps[serviceName] = methodMap;
     std::cout<<"------------ Service Register Info --------------"<<std::endl;
-    std::cout<<"service_name : "<<service_name<<std::endl;
+    std::cout<<"service_name : "<<serviceName<<std::endl;
     int index = 0;
     for(auto mp : methodMap) {
         std::cout<<"method_name"<<index++<<" : "<<mp.first<<std::endl;
@@ -108,8 +111,15 @@ void MyRpcProvider::MessageHandler(const muduo::net::TcpConnectionPtr &conn,
 void MyRpcProvider::Start() {
     //获取配置文件信息
     auto fileInfo = MyRpcApplication::getInstance().getFileInfo();
-    std::string server_ip = fileInfo["server_ip"];
-    uint16_t server_port = std::atoi(fileInfo["server_port"].c_str());
+    std::string server_ip{};
+    uint16_t server_port;
+    try {
+        server_ip = fileInfo["server_ip"];
+        server_port = std::atoi(fileInfo["server_port"].c_str());
+    } catch (const std::exception& e) {
+        LOG_ERROR("%s", e.what());
+        exit(EXIT_FAILURE);
+    }
     muduo::net::InetAddress address(server_ip, server_port);
 
     //建立TCPServer
@@ -121,6 +131,26 @@ void MyRpcProvider::Start() {
     //设置接收到信息回调
     server.setMessageCallback(std::bind(&MyRpcProvider::MessageHandler, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
     server.setThreadNum(5);
+
+    //运行zookeeper服务,连接zookeeper服务器
+    ZookeeperClient client;
+    client.Run();
+    for(const auto& serviceMap : serviceMaps) {
+        std::string serviceName = serviceMap.first;
+        std::string servicePath = "/"+serviceName;
+        //对于服务，创建永久节点
+        client.CreateZNode(servicePath.c_str(), nullptr, 0);
+        for(const auto& methodMap : serviceMap.second) {
+            std::string methodName = methodMap.first;
+            std::string methodNodePath;
+            methodNodePath.append(servicePath);
+            methodNodePath.append("/");
+            methodNodePath.append(methodName);
+            std::string methodNodeData = server_ip+":"+ std::to_string(server_port);
+            //对于方法，创建临时节点
+            client.CreateZNode(methodNodePath.c_str(), methodNodeData.c_str(), sizeof(methodNodeData), ZOO_EPHEMERAL);
+        }
+    }
 
     std::cout<<"Server [ip = "<<server_ip <<", port = " <<server_port<<"] Running ......"<<std::endl;
     server.start();

@@ -2,7 +2,13 @@
 build/
 log/
 .vscode-ctags
+cmake-build-debug/*
 
+*.name
+*.xml
+*.json
 *.so
 *.a
-
+*.log
+*.cmake
+*.iml

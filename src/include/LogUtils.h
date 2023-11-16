@@ -55,7 +55,7 @@ public:
     ~LogUtils();
 
     //获取日志时间
-    std::string getTime();
+    static std::string getTime();
 
     //获取单例日志对象
     static LogUtils& getInstance();

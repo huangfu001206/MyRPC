@@ -6,4 +6,4 @@ find_package(Boost REQUIRED COMPONENTS program_options)
 add_library(myrpc STATIC ${source_file})
 
 # 链接Boost库
-target_link_libraries(myrpc PRIVATE Boost::program_options muduo_net muduo_base muduo_http pthread)
+target_link_libraries(myrpc PRIVATE Boost::program_options muduo_net muduo_base muduo_http pthread zookeeper_mt)
