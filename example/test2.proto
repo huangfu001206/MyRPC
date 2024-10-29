@@ -1,0 +1,10 @@
+syntax = "proto3";
+package Test;
+
+option cc_generic_services = true;
+
+message Empty {}
+
+service ClientServiceRPC {
+    rpc Login(Empty) returns(Empty);
+}
