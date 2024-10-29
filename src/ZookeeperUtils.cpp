@@ -1,6 +1,12 @@
 #include "ZookeeperUtils.h"
 #include "MyRpcApplication.h"
-ZookeeperClient::ZookeeperClient():zhandler(nullptr) {
+
+ZookeeperClient& ZookeeperClient::getInstance() {
+    static ZookeeperClient client;
+    return client;
+}
+
+ZookeeperClient::ZookeeperClient():zhandler(nullptr), _is_connected(false) {
 
 }
 
@@ -11,30 +17,56 @@ ZookeeperClient::~ZookeeperClient() {
 }
 
 void ZkWatcher(zhandle_t* zhandle, int type, int state, const char* path, void *watcherCtx) {
+    std::cout << &zhandle << std::endl;
+    // std::cout << type << " " << state << " " << ZOO_CONNECTED_STATE << " " <<ZOO_EXPIRED_SESSION_STATE << std::endl;
     if(type == ZOO_SESSION_EVENT) {
         if(state == ZOO_CONNECTED_STATE) {
-            //即连接成功
+            std::cout << "ZOO_CONNECTED_STATE" << std::endl;
             sem_t *sem = (sem_t*) zoo_get_context(zhandle);
             sem_post(sem);
+        } else if(state == ZOO_EXPIRED_SESSION_STATE) {
+            std::cout << "ZOO_EXPIRED_SESSION_STATE" << std::endl;
+            ZookeeperClient::getInstance().ReConnect();
+        } else if(state == ZOO_CONNECTING_STATE) {
+            std::cout << "Connecting to Zookeeper..." << std::endl;
+        } else {
+            std::cout << "Other state code" << std::endl;
         }
     }
 }
 
+void ZookeeperClient::ReConnect() {
+    std::cout << "***** ReConnect ******" << std::endl;
+    if (_is_connected) {
+        zookeeper_close(zhandler);
+        _is_connected = false;
+    }
+    Run(); // 重新连接
+}
+
 void ZookeeperClient::Run() {
+    //避免重复连接
+    if(_is_connected) {
+        return;
+    }
     //获取zk server的ip和端口号
     std::string zk_ip = MyRpcApplication::getInstance().getFileInfo()["zookeeper_ip"];
     std::string zk_port = MyRpcApplication::getInstance().getFileInfo()["zookeeper_port"];
     std::string zk_addr = zk_ip+":"+zk_port;
 
-    zhandler = zookeeper_init(zk_addr.c_str(), ZkWatcher, 50000, nullptr, nullptr, 0);
+    zhandler = zookeeper_init(zk_addr.c_str(), ZkWatcher, 5000, nullptr, nullptr, 0);
     if(zhandler == nullptr) {
         LOG_ERROR("zookeeper 初始化失败");
         exit(EXIT_FAILURE);
     }
+
+    std::cout << &zhandler << std::endl;
+
     sem_t sem;
     sem_init(&sem, 0, 0);
     zoo_set_context(zhandler, &sem);
     sem_wait(&sem);
+    _is_connected = true;
     LOG_INFO("zookeeper 初始化成功");
 }
 

@@ -5,14 +5,6 @@
 
 int main(int argc, char** argv) {
 
-    LOG_DEBUG("LOG_DEBUG Test");
-    LOG_DEBUG("LOG_DEBUG Test");
-    LOG_INFO("LOG_INFO Test");
-    LOG_INFO("LOG_INFO Test");
-    LOG_ERROR("LOG_ERROR Test");
-    LOG_ERROR("LOG_ERROR Test");
-
-
     MyRpcApplication::getInstance().init(argc, argv);
     ClientPro::ClientServiceRPC_Stub stub(new MyRpcChan());
 
@@ -25,17 +17,22 @@ int main(int argc, char** argv) {
     ClientPro::LoginResponse response;
 
     //调用远程Rpc方法
-    MyRpcController controller;
-    stub.Login(&controller, &request, &response, nullptr);
+    for(int i = 0; i < 100; i++) {
+        MyRpcController controller;
+        stub.Login(&controller, &request, &response, nullptr);
 
-    if(controller.Failed()) {
-        std::cout<<controller.ErrorText()<<std::endl;
-    } else {
-        std::cout<<"++++++++ response info ++++++++"<<std::endl;
-        std::cout<<"success : "<<response.status().success()<<std::endl;
-        std::cout<<"errormsg : "<<response.status().errormsg()<<std::endl;
-        std::cout<<"msg : "<<response.msg()<<std::endl;
-        std::cout<<"+++++++++++++++++++++++++++++++"<<std::endl;
+        if(controller.Failed()) {
+            std::cout<<controller.ErrorText()<<std::endl;
+        } else {
+            // std::cout<<"++++++++ response info ++++++++"<<std::endl;
+            // std::cout<<"success : "<<response.status().success()<<std::endl;
+            // std::cout<<"errormsg : "<<response.status().errormsg()<<std::endl;
+            // std::cout<<"msg : "<<response.msg()<<std::endl;
+            // std::cout<<"+++++++++++++++++++++++++++++++"<<std::endl;
+            std::cout << "success [" << i << "]" << std::endl;
+        }
     }
+    
+    // DbLoggerUtils::getInstance().stop();
     return 0;
 }

@@ -3,35 +3,35 @@
 #include <fstream>
 
 
-#define LOG_DEBUG(logFormat, ...) \
-    do\
-    {\
-        LogUtils &logutils = LogUtils::getInstance();\
-        char c[1024] = {0};\
-        snprintf(c, 1024, logFormat, ##__VA_ARGS__);\
-        std::string content(c);\
-        logutils.WriteLog2Queue(c, DEBUG);\
-    } while(0)
+// #define LOG_DEBUG(logFormat, ...) \
+//     do\
+//     {\
+//         LogUtils &logutils = LogUtils::getInstance();\
+//         char c[1024] = {0};\
+//         snprintf(c, 1024, logFormat, ##__VA_ARGS__);\
+//         std::string content(c);\
+//         logutils.WriteLog2Queue(c, DEBUG);\
+//     } while(0)
 
-#define LOG_INFO(logFormat, ...) \
-    do\
-    {\
-        LogUtils &logutils = LogUtils::getInstance();\
-        char c[1024] = {0};\
-        snprintf(c, 1024, logFormat, ##__VA_ARGS__);\
-        std::string content(c);\
-        logutils.WriteLog2Queue(c, INFO);\
-    } while(0)
+// #define LOG_INFO(logFormat, ...) \
+//     do\
+//     {\
+//         LogUtils &logutils = LogUtils::getInstance();\
+//         char c[1024] = {0};\
+//         snprintf(c, 1024, logFormat, ##__VA_ARGS__);\
+//         std::string content(c);\
+//         logutils.WriteLog2Queue(c, INFO);\
+//     } while(0)
     
-#define LOG_ERROR(logFormat, ...) \
-    do\
-    {\
-        LogUtils &logutils = LogUtils::getInstance();\
-        char c[1024] = {0};\
-        snprintf(c, 1024, logFormat, ##__VA_ARGS__);\
-        std::string content(c);\
-        logutils.WriteLog2Queue(c, ERROR);\
-    } while(0)
+// #define LOG_ERROR(logFormat, ...) \
+//     do\
+//     {\
+//         LogUtils &logutils = LogUtils::getInstance();\
+//         char c[1024] = {0};\
+//         snprintf(c, 1024, logFormat, ##__VA_ARGS__);\
+//         std::string content(c);\
+//         logutils.WriteLog2Queue(c, ERROR);\
+//     } while(0)
 
 enum LogLevel : int{
     DEBUG,

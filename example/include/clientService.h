@@ -8,7 +8,7 @@ class clientService : public ClientPro::ClientServiceRPC {
                        const ::ClientPro::LoginRequest* request,
                        ::ClientPro::LoginResponse* response,
                        ::google::protobuf::Closure* done) {
-                        std::cout<<"Login Service execute"<<std::endl;
+                        // std::cout<<"Login Service execute"<<std::endl;
                         response->set_msg("SUCCESS");
                         done->Run();
                        }

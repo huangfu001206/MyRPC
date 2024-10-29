@@ -21,13 +21,6 @@ void MyRpcProvider::NotifyService(google::protobuf::Service* service) {
 
     //记录 服务名称 和 方法 的映射关系
     serviceMaps[serviceName] = methodMap;
-    std::cout<<"------------ Service Register Info --------------"<<std::endl;
-    std::cout<<"service_name : "<<serviceName<<std::endl;
-    int index = 0;
-    for(auto mp : methodMap) {
-        std::cout<<"method_name"<<index++<<" : "<<mp.first<<std::endl;
-    }
-    std::cout<<"-------------------------------------------------"<<std::endl;
 }
 //连接回调函数
 void MyRpcProvider::ConnectionHandler(const muduo::net::TcpConnectionPtr &conn) {
@@ -39,15 +32,16 @@ void MyRpcProvider::ConnectionHandler(const muduo::net::TcpConnectionPtr &conn) 
 
 void MyRpcProvider::SendRpcResponse(const muduo::net::TcpConnectionPtr& conn,
                             google::protobuf::Message *response) {
-        std::string response_str;
-        if(response->SerializeToString(&response_str)) {
-            conn->send(response_str);
-            std::cout<<"请求回复成功！"<<std::endl;
-        } else {
-            std::cout<<"序列化 response 失败!"<<std::endl;
-        }
-        //每次回复之后，直接主动断开连接
-        conn->shutdown();
+    std::string response_str;
+    if(response->SerializeToString(&response_str)) {
+        conn->send(response_str);
+        // std::cout<<"请求回复成功！"<<std::endl;
+    } else {
+        // std::cout<<"序列化 response 失败!"<<std::endl;
+        LOG_ERROR("序列化 response 失败!");
+    }
+    //每次回复之后，直接主动断开连接
+    conn->shutdown();
 }
 
 //接收到请求信息的回调函数
@@ -56,7 +50,7 @@ void MyRpcProvider::MessageHandler(const muduo::net::TcpConnectionPtr &conn,
                         muduo::Timestamp) {
     //对接收到的请求进行解析
     std::string recv_msg = buffer->retrieveAllAsString();
-    std::cout<<"received message : "<<recv_msg<<std::endl;
+    // std::cout<<"received message : "<<recv_msg<<std::endl;
     int header_size;
     recv_msg.copy((char*)&header_size, 4, 0);
     std::string rpchead_str = recv_msg.substr(4, header_size);
@@ -69,13 +63,6 @@ void MyRpcProvider::MessageHandler(const muduo::net::TcpConnectionPtr &conn,
     std::string method_name = header.method_name();
     uint32_t args_size = header.args_size();
     std::string args_str = recv_msg.substr(4 + header_size, args_size);
-
-    std::cout<<"-------------- MessageHandler Info --------------"<<std::endl;
-    std::cout<<"service_name : "<<service_name<<std::endl;
-    std::cout<<"method_name : "<<method_name<<std::endl;
-    std::cout<<"args_size : "<<args_size<<std::endl;
-    std::cout<<"args_str : "<<args_str<<std::endl;
-    std::cout<<"-------------------------------------------------"<<std::endl;
 
     //通过service_name 以及 method_name 找到对应的method 描述符
     if(serviceMaps.find(service_name) == serviceMaps.end()) {
@@ -133,7 +120,7 @@ void MyRpcProvider::Start() {
     server.setThreadNum(5);
 
     //运行zookeeper服务,连接zookeeper服务器
-    ZookeeperClient client;
+    ZookeeperClient& client = ZookeeperClient::getInstance();
     client.Run();
     for(const auto& serviceMap : serviceMaps) {
         std::string serviceName = serviceMap.first;

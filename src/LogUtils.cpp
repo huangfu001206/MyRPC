@@ -11,7 +11,6 @@ LogUtils::LogUtils() {
     if(!debug_fstream.is_open() || !info_fstream.is_open() || !info_fstream.is_open()) {
         std::cout<<"日志文件打开失败"<<std::endl;
     }
-    std::cout<<"LogUtils construct success"<<std::endl;
     //开启写日志循环
     std::thread logThread(&LogUtils::WriteLog2File, this);
     //该线程与主线程分离

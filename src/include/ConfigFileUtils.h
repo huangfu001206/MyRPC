@@ -2,7 +2,7 @@
 #include <string>
 #include <iostream>
 #include <unordered_map>
-#include "LogUtils.h"
+#include "DbLogUtils.h"
 
 class ConfigFileUtils {
 public:

@@ -4,7 +4,7 @@
 #include <zookeeper/zookeeper.h>
 class ZookeeperClient {
 public:
-    ZookeeperClient();
+    static ZookeeperClient& getInstance();
     ~ZookeeperClient();
 
     //连接zk_server
@@ -16,6 +16,10 @@ public:
     //获取给定路径节点的信息
     std::string GetZNodeData(const char* path);
 
+    void ReConnect();
+
 private:
+    ZookeeperClient();
     zhandle_t *zhandler;
+    bool _is_connected;
 };

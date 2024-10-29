@@ -2,10 +2,19 @@
 #include "MyRpcHeader.pb.h"
 #include "MyRpcApplication.h"
 #include "ZookeeperUtils.h"
+#include "LRUCache.h"
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+
+std::shared_ptr<std::string> MyRpcChan::GetCache(const std::string& key) {
+    return _cache.get(key);
+}
+
+void MyRpcChan::AddCache(const std::string& key, const std::string& value) {
+    _cache.put(key, value);
+}
 
 void MyRpcChan::CallMethod(const google::protobuf::MethodDescriptor* method,
                           google::protobuf::RpcController* controller, 
@@ -53,14 +62,6 @@ void MyRpcChan::CallMethod(const google::protobuf::MethodDescriptor* method,
     rpc_request_str += rpc_header_str;
     rpc_request_str += args_str;
 
-    std::cout<<"+++++++++++++++ 请求相关信息 ++++++++++++++++++++++"<<std::endl;
-    std::cout<<"header_size : "<<header_size<<std::endl;
-    std::cout<<"rpc header : "<<rpc_header_str.substr(1)<<std::endl;
-    std::cout<<"service_name : "<<service_name<<std::endl;
-    std::cout<<"method_name : "<<method_name<<std::endl;
-    std::cout<<"args : "<<args_str.substr(1)<<std::endl;
-    std::cout<<"+++++++++++++++++++++++++++++++++++++++++++++++++"<<std::endl;
-
     //使用socket进行请求发送
     int client_fd = socket(AF_INET, SOCK_STREAM, 0);
     if(client_fd == -1) {
@@ -68,22 +69,27 @@ void MyRpcChan::CallMethod(const google::protobuf::MethodDescriptor* method,
         LOG_ERROR("socket 创建失败");
         return;
     }
-//    auto config_file_info = MyRpcApplication::getInstance().getFileInfo();
-//    std::string server_ip = config_file_info["server_ip"];
-//    int port = atoi(config_file_info["server_port"].c_str());
 
-    //连接zookeeper服务器，找到服务以及方法对应的服务ip和端口号
-    ZookeeperClient client;
-    client.Run();
     std::string zNodePath = "/"+service_name+"/"+method_name;
-    std::string server_ip_port = std::string(client.GetZNodeData(zNodePath.c_str()));
+    std::shared_ptr<std::string> ip_port_ptr = GetCache(zNodePath);
+    std::string server_ip_port;
+    if(ip_port_ptr != nullptr) {
+        server_ip_port = *(ip_port_ptr);
+    } else {
+        //连接zookeeper服务器，找到服务以及方法对应的服务ip和端口号
+        auto& client = ZookeeperClient::getInstance();
+        client.Run();
+        server_ip_port = std::string(client.GetZNodeData(zNodePath.c_str()));
+        AddCache(zNodePath, server_ip_port);
+    }
+
     size_t index = server_ip_port.find_first_of(':');
     std::string server_ip;
     int port;
     try {
         server_ip = server_ip_port.substr(0, index);
         port = std::atoi(server_ip_port.substr(index + 1).c_str());
-        std::cout<<"服务： "<<service_name<<"."<<method_name<<" is at "<<server_ip<<":"<<port<<std::endl;
+        // std::cout<<"服务： "<<service_name<<"."<<method_name<<" is at "<<server_ip<<":"<<port<<std::endl;
     } catch (const std::exception& e) {
         LOG_ERROR("%s", e.what());
         controller->SetFailed(e.what());

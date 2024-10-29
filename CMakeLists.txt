@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 PROJECT(MYRPC)
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 
 #生成debug版本以支持gdb调试
 set(CMAKE_BUILD_TYPE "Debug")

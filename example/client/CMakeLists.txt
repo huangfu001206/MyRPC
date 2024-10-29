@@ -3,4 +3,6 @@ message("source_file : " ${source_file})
 
 add_executable(Client ${source_file})
 
-target_link_libraries(Client protobuf myrpc)
+find_package(Protobuf REQUIRED)
+include_directories(${PROTOBUF_INCLUDE_DIR})
+target_link_libraries(Client ${PROTOBUF_LIBRARY} myrpc)
