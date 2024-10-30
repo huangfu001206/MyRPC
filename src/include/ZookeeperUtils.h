@@ -15,11 +15,19 @@ public:
 
     //获取给定路径节点的信息
     std::string GetZNodeData(const char* path);
-
+    
+    //重新连接
     void ReConnect();
+
+    //监听节点
+    bool WatchNode(const std::string& path);
+
+    //watcher函数
+    static void WatchNodeHandler(zhandle_t* zh, int type, int state, const char* path, void* watcherCtx);
 
 private:
     ZookeeperClient();
+
     zhandle_t *zhandler;
     bool _is_connected;
 };

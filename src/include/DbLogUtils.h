@@ -18,8 +18,8 @@
     do\
     {\
         DbLoggerUtils &logutils = DbLoggerUtils::getInstance();\
-        char c[1024] = {0};\
-        snprintf(c, 1024, logFormat, ##__VA_ARGS__);\
+        char c[2048] = {0};\
+        snprintf(c, 2048, logFormat, ##__VA_ARGS__);\
         std::string content(c);\
         logutils.log(DbLogLevel::DEBUG, c);\
     } while(0)
@@ -28,8 +28,8 @@
     do\
     {\
         DbLoggerUtils &logutils = DbLoggerUtils::getInstance();\
-        char c[1024] = {0};\
-        snprintf(c, 1024, logFormat, ##__VA_ARGS__);\
+        char c[2048] = {0};\
+        snprintf(c, 2048, logFormat, ##__VA_ARGS__);\
         std::string content(c);\
         logutils.log(DbLogLevel::INFO, c);\
     } while(0)
@@ -38,8 +38,8 @@
     do\
     {\
         DbLoggerUtils &logutils = DbLoggerUtils::getInstance();\
-        char c[1024] = {0};\
-        snprintf(c, 1024, logFormat, ##__VA_ARGS__);\
+        char c[2048] = {0};\
+        snprintf(c, 2048, logFormat, ##__VA_ARGS__);\
         std::string content(c);\
         logutils.log(DbLogLevel::WARN, c);\
     } while(0)
@@ -48,8 +48,8 @@
     do\
     {\
         DbLoggerUtils &logutils = DbLoggerUtils::getInstance();\
-        char c[1024] = {0};\
-        snprintf(c, 1024, logFormat, ##__VA_ARGS__);\
+        char c[2048] = {0};\
+        snprintf(c, 2048, logFormat, ##__VA_ARGS__);\
         std::string content(c);\
         logutils.log(DbLogLevel::ERROR, c);\
     } while(0)

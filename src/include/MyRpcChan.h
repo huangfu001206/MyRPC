@@ -5,7 +5,6 @@
 
 class MyRpcChan : public google::protobuf::RpcChannel {
 public:
-    MyRpcChan() : _cache(100) {}
 
     void CallMethod(const google::protobuf::MethodDescriptor* method,
                           google::protobuf::RpcController* controller, 
@@ -15,7 +14,4 @@ public:
     std::shared_ptr<std::string> GetCache(const std::string& key);
 
     void AddCache(const std::string& key, const std::string& value);
-
-private:
-    LRUCache<std::string, std::string> _cache;
 };

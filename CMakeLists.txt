@@ -17,3 +17,7 @@ link_directories(${PROJECT_SOURCE_DIR}/lib)
 add_subdirectory(src)
 add_subdirectory(example)
 
+# 添加测试目录
+enable_testing()
+add_subdirectory(tests)
+

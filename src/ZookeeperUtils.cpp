@@ -1,5 +1,9 @@
 #include "ZookeeperUtils.h"
 #include "MyRpcApplication.h"
+#include "DbLogUtils.h"
+#include "LRUCache.h"
+#include <sstream>
+#include <string>
 
 ZookeeperClient& ZookeeperClient::getInstance() {
     static ZookeeperClient client;
@@ -17,8 +21,9 @@ ZookeeperClient::~ZookeeperClient() {
 }
 
 void ZkWatcher(zhandle_t* zhandle, int type, int state, const char* path, void *watcherCtx) {
-    std::cout << &zhandle << std::endl;
-    // std::cout << type << " " << state << " " << ZOO_CONNECTED_STATE << " " <<ZOO_EXPIRED_SESSION_STATE << std::endl;
+    // std::cout << &zhandle << std::endl;
+    std::cout << type << " " << state << " " << ZOO_CONNECTED_STATE << " " <<ZOO_EXPIRED_SESSION_STATE << std::endl;
+    std::cout << path << std::endl;
     if(type == ZOO_SESSION_EVENT) {
         if(state == ZOO_CONNECTED_STATE) {
             std::cout << "ZOO_CONNECTED_STATE" << std::endl;
@@ -29,19 +34,69 @@ void ZkWatcher(zhandle_t* zhandle, int type, int state, const char* path, void *
             ZookeeperClient::getInstance().ReConnect();
         } else if(state == ZOO_CONNECTING_STATE) {
             std::cout << "Connecting to Zookeeper..." << std::endl;
-        } else {
-            std::cout << "Other state code" << std::endl;
         }
-    }
+    } 
 }
 
 void ZookeeperClient::ReConnect() {
-    std::cout << "***** ReConnect ******" << std::endl;
+    // std::cout << "***** ReConnect ******" << std::endl;
     if (_is_connected) {
         zookeeper_close(zhandler);
         _is_connected = false;
     }
     Run(); // 重新连接
+}
+
+void ZookeeperClient::WatchNodeHandler(zhandle_t* zh, int type, int state, const char* path, void* watcher_ctx) {
+    // 重新获取节点数据
+    char buffer[1024];
+    int buffer_len = sizeof(buffer);
+
+    // 处理节点事件
+    if (type == ZOO_CREATED_EVENT) {
+        std::cout << "Node created: " << path << std::endl;
+    } else if (type == ZOO_DELETED_EVENT) {
+        std::cout << "Node deleted: " << path << std::endl;
+    } else if (type == ZOO_CHANGED_EVENT) {
+        std::cout << "Node data changed: " << path << std::endl;
+    } else if (type == ZOO_CHILD_EVENT) {
+        std::cout << "Children changed in node: " << path << std::endl;
+    } else {
+        std::cout << "Unhandled event type: " << type << std::endl;
+    }
+
+    auto& cache = LRUCache<std::string, std::string>::getInstance();
+    std::string node_path = std::string(path);
+
+    if (type == ZOO_CHANGED_EVENT) {
+        if (zoo_get(zh, path, 0, buffer, &buffer_len, nullptr) == ZOK) {
+            buffer[buffer_len] = '\0'; // 确保字符串结束
+        } //TODO : Exception Cache
+        std::string new_ip_port = std::string(buffer);
+        cache.put(node_path, new_ip_port);
+        std::cout << "new config : " << new_ip_port << std::endl;
+    } else if (type == ZOO_DELETED_EVENT) {
+        cache.remove(path);
+        std::cout << "Node deleted: " << path << std::endl;
+    } else if (type == ZOO_CREATED_EVENT) {
+        std::cout << "Node created: " << path << std::endl;
+    }
+
+    // 重新设置 watcher
+    zoo_wget(zh, path, &ZookeeperClient::WatchNodeHandler, nullptr, buffer, &buffer_len, nullptr);
+}
+
+bool ZookeeperClient::WatchNode(const std::string& path) {
+    char buffer[1024];
+    int buffer_len = sizeof(buffer);
+    if (zoo_wget(zhandler, path.c_str(), &ZookeeperClient::WatchNodeHandler, nullptr, buffer, &buffer_len, nullptr) == ZOK) {
+        buffer[buffer_len] = '\0'; // 确保字符串结束
+        LOG_INFO("Current data for path : %s", buffer);
+        return true;
+    } else {
+        LOG_ERROR("Failed to set watcher on node: %s", path.c_str());
+        return false;
+    }
 }
 
 void ZookeeperClient::Run() {
@@ -59,8 +114,6 @@ void ZookeeperClient::Run() {
         LOG_ERROR("zookeeper 初始化失败");
         exit(EXIT_FAILURE);
     }
-
-    std::cout << &zhandler << std::endl;
 
     sem_t sem;
     sem_init(&sem, 0, 0);

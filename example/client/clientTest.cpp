@@ -33,6 +33,9 @@ int main(int argc, char** argv) {
         }
     }
     
+    while (true) {
+        std::this_thread::sleep_for(std::chrono::seconds(1)); // 每秒执行一次
+    }
     // DbLoggerUtils::getInstance().stop();
     return 0;
 }

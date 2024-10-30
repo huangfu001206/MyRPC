@@ -9,10 +9,12 @@
 #include <unistd.h>
 
 std::shared_ptr<std::string> MyRpcChan::GetCache(const std::string& key) {
+    auto& _cache = LRUCache<std::string, std::string>::getInstance();
     return _cache.get(key);
 }
 
 void MyRpcChan::AddCache(const std::string& key, const std::string& value) {
+    auto& _cache = LRUCache<std::string, std::string>::getInstance();
     _cache.put(key, value);
 }
 
@@ -62,14 +64,7 @@ void MyRpcChan::CallMethod(const google::protobuf::MethodDescriptor* method,
     rpc_request_str += rpc_header_str;
     rpc_request_str += args_str;
 
-    //使用socket进行请求发送
-    int client_fd = socket(AF_INET, SOCK_STREAM, 0);
-    if(client_fd == -1) {
-        controller->SetFailed("socket 创建失败");
-        LOG_ERROR("socket 创建失败");
-        return;
-    }
-
+    //查询缓存/zk 获取服务端地址
     std::string zNodePath = "/"+service_name+"/"+method_name;
     std::shared_ptr<std::string> ip_port_ptr = GetCache(zNodePath);
     std::string server_ip_port;
@@ -80,9 +75,19 @@ void MyRpcChan::CallMethod(const google::protobuf::MethodDescriptor* method,
         auto& client = ZookeeperClient::getInstance();
         client.Run();
         server_ip_port = std::string(client.GetZNodeData(zNodePath.c_str()));
-        AddCache(zNodePath, server_ip_port);
+
+        if(!server_ip_port.empty()) {
+            AddCache(zNodePath, server_ip_port);
+            //监听节点
+            client.WatchNode(zNodePath);
+        }
+        else {
+            controller->SetFailed(zNodePath + " 服务不存在");
+            return;
+        }
     }
 
+    //解析IP & Port
     size_t index = server_ip_port.find_first_of(':');
     std::string server_ip;
     int port;
@@ -93,6 +98,14 @@ void MyRpcChan::CallMethod(const google::protobuf::MethodDescriptor* method,
     } catch (const std::exception& e) {
         LOG_ERROR("%s", e.what());
         controller->SetFailed(e.what());
+        return;
+    }
+
+    //使用socket进行请求发送
+    int client_fd = socket(AF_INET, SOCK_STREAM, 0);
+    if(client_fd == -1) {
+        controller->SetFailed("socket 创建失败");
+        LOG_ERROR("socket 创建失败");
         return;
     }
 

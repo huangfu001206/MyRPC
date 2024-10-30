@@ -9,7 +9,12 @@
 template <typename K, typename V>
 class LRUCache {
 public:
-    LRUCache(size_t capacity) : _capacity(capacity) {}
+    static LRUCache& getInstance() {
+        static LRUCache _cache;
+        return _cache;
+    }
+
+    void set_capacity(size_t capacity) {_capacity = capacity;}
 
     std::shared_ptr<V> get(const K& key) {
         std::shared_lock<std::shared_mutex> lock(_mutex);
@@ -42,6 +47,17 @@ public:
         }
     }
 
+    void remove(const K& key) {
+        std::unique_lock<std::shared_mutex> lock(_mutex);
+        auto it = _cache_map.find(key);
+        if (it != _cache_map.end()) {
+            // Remove from access list and cache map
+            _access_list.erase(it->second.second);
+            _cache_map.erase(it);
+            std::cout << "删除缓存: " << key << std::endl;
+        }
+    }
+
     // void printCache() {
     //     std::shared_lock<std::shared_mutex> lock(_mutex);
     //     for (const auto& key : _access_list) {
@@ -50,10 +66,12 @@ public:
     // }
 
 private:
-    size_t _capacity;
+    size_t _capacity = 100;
     std::list<K> _access_list; // Store keys in order of access
     std::unordered_map<K, std::pair<V, typename std::list<K>::iterator>> _cache_map; // Key -> (Value, Iterator)
     mutable std::shared_mutex _mutex; // For thread safety
+
+    LRUCache() = default;
 };
 
 #endif // LRU_CACHE_H
